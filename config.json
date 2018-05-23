@@ -1,0 +1,24 @@
+{
+  "name": "Quick Permissions",
+  "description": "Quickly add/update user rights with presets",
+
+  "namespace": "UIOWA\\QuickPermissions",
+
+  "authors": [
+    {
+      "name": "Joseph Spring",
+      "email": "joseph-spring@uiowa.edu",
+      "institution": "University of Iowa Institute for Clinical and Translational Science"
+    }
+  ],
+
+  "links": {
+    "control-center": [
+      {
+        "name": "Quick Permissions",
+        "icon": "user",
+        "url": "index.php"
+      }
+    ]
+  }
+}
