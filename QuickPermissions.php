@@ -86,7 +86,7 @@ class QuickPermissions extends AbstractExternalModule {
 
         $presets = json_decode(self::getSystemSetting('presets'), true);
 
-        $sql = "SELECT project_id, app_title FROM redcap_projects ORDER BY project_id DESC LIMIT 10";
+        $sql = "SELECT project_id, app_title FROM redcap_projects WHERE redcap_projects.status != 3 AND redcap_projects.date_deleted IS NULL ORDER BY project_id DESC LIMIT 10";
 
         $sql = db_query($sql);
         $recentProjects = [];
