@@ -112,7 +112,7 @@ class QuickPermissions extends AbstractExternalModule {
 
             <br/>
             <label for="pid">Select Project: </label>
-            <select id="pid" name="pid" onchange="showOtherPid(this.value)">
+            <select id="pid" name="pid" onchange="UIOWA_QuickPermissions.showOtherPid(this.value)">
                 <?php
                 foreach($recentProjects as $key => $value):
                     echo '<option value="' . $value['project_id'] . '">' . $value['project_id'] . ' - ' . $value['app_title'] . '</option>';
@@ -126,16 +126,16 @@ class QuickPermissions extends AbstractExternalModule {
             <label for="username">Enter Username: </label>
             <input id="username" type="text" name="username" value="" required><br/>
             <label for="quickPermissions">Permissions Preset:</label>
-            <select id="quickPermissions" name="ignore" onchange="loadPermissionPreset(this)">
+            <select id="quickPermissions" name="ignore" onchange="UIOWA_QuickPermissions.loadPermissionPreset(this)">
                 <?php
                 foreach($presets as $key => $value):
                     echo '<option value="' . $key . '">' . $value['title'] . '</option>';
                 endforeach;
                 ?>
-            </select><button id="deletePreset" style="display: none" type="button" onclick="removePreset()">Delete</button>
+            </select><button id="deletePreset" style="display: none" type="button" onclick="UIOWA_QuickPermissions.removePreset()">Delete</button>
             <br />
-            <input id="newPresetTitle" name="ignore" type="text" onchange="setSavePresetButtonState(this)">
-            <button id='addPreset' type="button" onclick="savePreset(this)">Save Custom Preset</button>
+            <input id="newPresetTitle" name="ignore" type="text" onchange="UIOWA_QuickPermissions.setSavePresetButtonState(this)">
+            <button id='addPreset' type="button" onclick="UIOWA_QuickPermissions.savePreset(this)">Save Custom Preset</button>
             <br/>
             <br/>
 
@@ -213,7 +213,7 @@ class QuickPermissions extends AbstractExternalModule {
                 unset($_SESSION['result']);
                 unset($_SESSION['redirectUrl']);
 
-                echo "confirmRedirect(\"$returnValue\", \"$redirectUrl\");";
+                echo "UIOWA_QuickPermissions.confirmRedirect(\"$returnValue\", \"$redirectUrl\");";
             }
             ?>
         </script>

@@ -1,4 +1,6 @@
-function savePreset() {
+var UIOWA_QuickPermissions = {};
+
+UIOWA_QuickPermissions.savePreset = function() {
     var elements = document.forms["permissions"].getElementsByTagName("input");
     var rights = {};
     var radioName = '';
@@ -44,9 +46,9 @@ function savePreset() {
     else {
         alert("This preset title is blank or too similar to an existing preset. Please change it to a unique title before saving.");
     }
-}
+};
 
-function removePreset() {
+UIOWA_QuickPermissions.removePreset = function() {
     var dropdown = document.getElementById('quickPermissions');
     var valueToRemove = dropdown.value;
 
@@ -61,9 +63,9 @@ function removePreset() {
 
         savePresets(permissionsLookup);
     }
-}
+};
 
-function loadPermissionPreset(select) {
+UIOWA_QuickPermissions.loadPermissionPreset = function(select) {
     var selectedValue = select.options[select.selectedIndex].value;
 
     var preset = permissionsLookup[selectedValue]['data'];
@@ -93,18 +95,18 @@ function loadPermissionPreset(select) {
     {
         document.getElementById("deletePreset").style.display = 'none';
     }
-}
+};
 
-function savePresets(presetsData) {
-    presetsData = JSON.stringify(presetsData);
+//UIOWA_QuickPermissions.savePresets = function(presetsData) {
+//    presetsData = JSON.stringify(presetsData);
+//
+//    var request = new XMLHttpRequest();
+//    request.open("POST", savePresetUrl, true);
+//    request.setRequestHeader("Content-type", "application/json");
+//    request.send(presetsData);
+//};
 
-    var request = new XMLHttpRequest();
-    request.open("POST", savePresetUrl, true);
-    request.setRequestHeader("Content-type", "application/json");
-    request.send(presetsData);
-}
-
-function showOtherPid(value) {
+UIOWA_QuickPermissions.showOtherPid = function(value) {
     var pidInput = document.getElementById('otherPid');
     var pidLabel = document.getElementById('otherPidLabel');
 
@@ -120,17 +122,17 @@ function showOtherPid(value) {
 
         pidInput.disabled = 'disabled';
     }
-}
+};
 
-function confirmRedirect(message, url) {
+UIOWA_QuickPermissions.confirmRedirect = function(message, url) {
     var confirmed = confirm(message + '\n\nClick OK to view User Rights page or Cancel to stay on this page.');
 
     if (confirmed) {
         window.location.href = url;
     }
-}
+};
 
-function setSavePresetButtonState(input) {
+UIOWA_QuickPermissions.setSavePresetButtonState = function(input) {
     var button = document.getElementById('addPreset');
 
     if (input.value == '') {
@@ -139,4 +141,4 @@ function setSavePresetButtonState(input) {
     else {
         button.disabled = ''
     }
-}
+};
