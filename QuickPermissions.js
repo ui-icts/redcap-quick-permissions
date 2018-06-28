@@ -41,7 +41,7 @@ UIOWA_QuickPermissions.savePreset = function() {
         input.value = '';
         document.getElementById("deletePreset").style.display = '';
 
-        savePresets(permissionsLookup);
+        this.savePresets(permissionsLookup);
     }
     else {
         alert("This preset title is blank or too similar to an existing preset. Please change it to a unique title before saving.");
@@ -59,9 +59,9 @@ UIOWA_QuickPermissions.removePreset = function() {
         delete permissionsLookup[valueToRemove];
         dropdown.remove(dropdown.selectedIndex);
 
-        loadPermissionPreset(dropdown);
+        this.loadPermissionPreset(dropdown);
 
-        savePresets(permissionsLookup);
+        this.savePresets(permissionsLookup);
     }
 };
 
@@ -97,14 +97,14 @@ UIOWA_QuickPermissions.loadPermissionPreset = function(select) {
     }
 };
 
-//UIOWA_QuickPermissions.savePresets = function(presetsData) {
-//    presetsData = JSON.stringify(presetsData);
-//
-//    var request = new XMLHttpRequest();
-//    request.open("POST", savePresetUrl, true);
-//    request.setRequestHeader("Content-type", "application/json");
-//    request.send(presetsData);
-//};
+UIOWA_QuickPermissions.savePresets = function(presetsData) {
+    presetsData = JSON.stringify(presetsData);
+
+    var request = new XMLHttpRequest();
+    request.open("POST", savePresetUrl, true);
+    request.setRequestHeader("Content-type", "application/json");
+    request.send(presetsData);
+};
 
 UIOWA_QuickPermissions.showOtherPid = function(value) {
     var pidInput = document.getElementById('otherPid');
