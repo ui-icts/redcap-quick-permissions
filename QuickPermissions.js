@@ -44,7 +44,7 @@ UIOWA_QuickPermissions.savePreset = function() {
         this.savePresets(permissionsLookup);
     }
     else {
-        alert("This preset title is blank or too similar to an existing preset. Please change it to a unique title before saving.");
+        alert("This preset title is too similar to an existing preset. Please change it to a unique title before saving.");
     }
 };
 
@@ -59,41 +59,49 @@ UIOWA_QuickPermissions.removePreset = function() {
         delete permissionsLookup[valueToRemove];
         dropdown.remove(dropdown.selectedIndex);
 
-        this.loadPermissionPreset(dropdown);
+        this.loadPermissions(null);
 
         this.savePresets(permissionsLookup);
     }
 };
 
-UIOWA_QuickPermissions.loadPermissionPreset = function(select) {
-    var selectedValue = select.options[select.selectedIndex].value;
+UIOWA_QuickPermissions.loadPermissions = function(data) {
+    if (data === null) {
+        var select = document.getElementById('quickPermissions');
+        var selectedValue = select.options[select.selectedIndex].value;
 
-    var preset = permissionsLookup[selectedValue]['data'];
-    var keys = Object.keys(preset);
+        if (selectedValue == '') {
+            return;
+        }
+
+        data = permissionsLookup[selectedValue]['data'];
+
+        if (!defaultPresetNames.includes(selectedValue))
+        {
+            document.getElementById("deletePreset").style.display = '';
+        }
+        else
+        {
+            document.getElementById("deletePreset").style.display = 'none';
+        }
+    }
+
+    var keys = Object.keys(data);
 
     for (var i in keys) {
         var key = keys[i];
         var el = document.getElementsByName(key);
 
         if (el[0].type == 'checkbox') {
-            el[0].checked = preset[key] == "1";
+            el[0].checked = data[key] == "1";
         }
         if (el[0].type == 'radio') {
             for (var j in el) {
-                if (el[j].value == preset[key]) {
+                if (el[j].value == data[key]) {
                     el[j].checked = true;
                 }
             }
         }
-    }
-
-    if (!defaultPresetNames.includes(selectedValue))
-    {
-        document.getElementById("deletePreset").style.display = '';
-    }
-    else
-    {
-        document.getElementById("deletePreset").style.display = 'none';
     }
 };
 
@@ -106,26 +114,119 @@ UIOWA_QuickPermissions.savePresets = function(presetsData) {
     request.send(presetsData);
 };
 
-UIOWA_QuickPermissions.showOtherPid = function(value) {
-    var pidInput = document.getElementById('otherPid');
-    var pidLabel = document.getElementById('otherPidLabel');
+UIOWA_QuickPermissions.getExistingUsers = function(pid) {
+    var request = new XMLHttpRequest();
+    request.open("POST", requestHandlerUrl, true);
+    request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    request.send('type=getUsers&pid=' + pid);
 
-    if (value == 'other') {
+    request.onreadystatechange = function() {
+        if (request.readyState === 4) {
+            var usersDropdown = document.getElementById('existingUser');
+            var users = JSON.parse(request.response);
+
+            for (var i = usersDropdown.options.length - 1 ; i >= 0 ; i--)
+            {
+                usersDropdown.remove(i);
+            }
+
+            var initialOption = document.createElement("option");
+            initialOption.text = '---Select---';
+            initialOption.value = '';
+            usersDropdown.appendChild(initialOption);
+
+            for (var j in users) {
+                var newOption = document.createElement("option");
+                var labelStr = users[j]['username'];
+
+                if (users[j]['user_firstname'] != null && users[j]['user_lastname'] != null) {
+                    labelStr +=  ' (' + users[j]['user_firstname'] + ' ' + users[j]['user_lastname'] + ')';
+                }
+
+                newOption.text = labelStr;
+                newOption.value = users[j]['username'];
+                usersDropdown.appendChild(newOption);
+            }
+        }
+    }
+};
+
+UIOWA_QuickPermissions.getUserRights = function(pid, username) {
+    var request = new XMLHttpRequest();
+    request.open("POST", requestHandlerUrl, true);
+    request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    request.send('type=getUserRights&pid=' + pid + '&username=' + username);
+
+    request.onreadystatechange = function() {
+        if (request.readyState === 4) {
+            var userRights = JSON.parse(request.response);
+
+            var supportedPermissions = [
+                'design',
+                'user_rights',
+                'data_access_groups',
+                'data_export_tool',
+                'reports',
+                'graphical',
+                'calendar',
+                'data_import_tool',
+                'data_comparison_tool',
+                'data_logging',
+                'file_repository',
+                'data_quality_design',
+                'data_quality_execute',
+                'record_create',
+                'record_rename',
+                'record_delete',
+                'lock_record_customize',
+                'lock_record',
+                'lock_record_multiform',
+                'api_export',
+                'api_import',
+                'mobile_app',
+                'mobile_app_download_data'
+            ];
+
+            for (var property in userRights) {
+                if (supportedPermissions.indexOf(property) == -1) {
+                    delete userRights[property];
+                }
+            }
+
+            UIOWA_QuickPermissions.loadPermissions(userRights);
+        }
+    }
+};
+
+UIOWA_QuickPermissions.updatePid = function(value) {
+    var pidInput = document.getElementById('pid');
+    var pidLabel = document.getElementById('pidLabel');
+
+    if (document.getElementById('pidSelect').value != 'other') {
+        pidInput.style.display = 'none';
+        pidLabel.style.display = 'none';
+
+        document.getElementById('pid').value = document.getElementById('pidSelect').value;
+    }
+    else {
         pidInput.style.display = '';
         pidLabel.style.display = '';
 
         pidInput.disabled = '';
-    }
-    else {
-        pidInput.style.display = 'none';
-        pidLabel.style.display = 'none';
 
-        pidInput.disabled = 'disabled';
+        document.getElementById('pid').value = value;
     }
+
+    UIOWA_QuickPermissions.getExistingUsers(document.getElementById('pid').value);
 };
 
 UIOWA_QuickPermissions.confirmRedirect = function(message, url) {
-    var confirmed = confirm(message + '\n\nClick OK to view User Rights page or Cancel to stay on this page.');
+    if (url != '') {
+        var confirmed = confirm(message + '\n\nClick OK to view User Rights page or Cancel to stay on this page.');
+    }
+    else {
+        alert(message);
+    }
 
     if (confirmed) {
         window.location.href = url;
