@@ -71,6 +71,7 @@ UIOWA_QuickPermissions.loadPermissions = function(data) {
         var selectedValue = select.options[select.selectedIndex].value;
 
         if (selectedValue == '') {
+            document.getElementById("deletePreset").style.display = 'none';
             return;
         }
 
@@ -118,7 +119,7 @@ UIOWA_QuickPermissions.getExistingUsers = function(pid) {
     var request = new XMLHttpRequest();
     request.open("POST", requestHandlerUrl, true);
     request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-    request.send('type=getUsers&pid=' + pid);
+    request.send('type=getProjectUsers&pid=' + pid);
 
     request.onreadystatechange = function() {
         if (request.readyState === 4) {
@@ -146,8 +147,28 @@ UIOWA_QuickPermissions.getExistingUsers = function(pid) {
                 newOption.text = labelStr;
                 newOption.value = users[j]['username'];
                 usersDropdown.appendChild(newOption);
+                existingUsers.push(users[j]['username']);
             }
         }
+    }
+};
+
+UIOWA_QuickPermissions.getUserList = function() {
+    var request = new XMLHttpRequest();
+    request.open("POST", requestHandlerUrl, true);
+    request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    request.send('type=getUserList');
+
+    request.onreadystatechange = function() {
+        if (request.readyState === 4) {
+            var userInfo = JSON.parse(request.response);
+
+            $( function() {
+                $( "#username" ).autocomplete({
+                    source: userInfo
+                });
+            } );
+            }
     }
 };
 
@@ -184,7 +205,8 @@ UIOWA_QuickPermissions.getUserRights = function(pid, username) {
                 'api_export',
                 'api_import',
                 'mobile_app',
-                'mobile_app_download_data'
+                'mobile_app_download_data',
+                'email'
             ];
 
             for (var property in userRights) {
@@ -193,9 +215,27 @@ UIOWA_QuickPermissions.getUserRights = function(pid, username) {
                 }
             }
 
+            document.getElementById("email").checked = '';
+            document.getElementById("email").disabled = 'disabled';
+
             UIOWA_QuickPermissions.loadPermissions(userRights);
         }
     }
+};
+
+UIOWA_QuickPermissions.newUserCheck = function (input) {
+    var username = input.value;
+    var emailCheckbox = document.getElementById("email");
+
+    if (existingUsers.indexOf(username) != -1) {
+        emailCheckbox.checked = '';
+        emailCheckbox.disabled = 'disabled';
+    }
+    else {
+        emailCheckbox.disabled = '';
+    }
+
+
 };
 
 UIOWA_QuickPermissions.updatePid = function(value) {
