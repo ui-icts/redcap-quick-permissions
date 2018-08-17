@@ -349,7 +349,6 @@ class QuickPermissions extends AbstractExternalModule {
             var requestHandlerUrl = "<?= $this->getUrl("requestHandler.php") ?>";
             var existingUsers = [];
 
-            UIOWA_QuickPermissions.getUserList();
         </script>
 
         <h4>Quick Permissions</h4>
@@ -372,7 +371,7 @@ class QuickPermissions extends AbstractExternalModule {
             <br />
             <div class="ui-widget">
                 <label for="username">Enter Username: </label>
-                <input id="username" name="username" oninput="UIOWA_QuickPermissions.newUserCheck(this)">
+                <input id="username" name="username">
             </div>
             -- OR --<br />
             <label for="existingUser">Load Existing User: </label>

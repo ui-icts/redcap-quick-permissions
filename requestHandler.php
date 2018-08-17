@@ -5,9 +5,6 @@ $module = new UIOWA\QuickPermissions\QuickPermissions();
 if ($_REQUEST['type'] == 'updateUser') {
     $module->updateUserRights();
 }
-elseif ($_REQUEST['type'] == 'getUserList') {
-    $module->getUserList();
-}
 elseif ($_REQUEST['type'] == 'getProjectUsers') {
     $module->getExistingUsers($_REQUEST['pid']);
 }

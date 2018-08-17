@@ -1,3 +1,23 @@
+$(document).ready(function () {
+    $('#username').autocomplete({
+        source: app_path_webroot + "UserRights/search_user.php?ignoreExistingUsers=1&pid=" + document.getElementById('pid').value,
+        minLength: 2,
+        delay: 150,
+        html: true,
+        select: function (event, ui) {
+            $(this).val(ui.item.value);
+            return false;
+        }
+    });
+
+    $[ "ui" ][ "autocomplete" ].prototype["_renderItem"] = function( ul, item) {
+        return $( "<li></li>" )
+            .data( "item.autocomplete", item )
+            .append( $( "<a></a>" ).html( item.label ) )
+            .appendTo( ul );
+    };
+});
+
 var UIOWA_QuickPermissions = {};
 
 UIOWA_QuickPermissions.savePreset = function() {
