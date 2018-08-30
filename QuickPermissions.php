@@ -59,6 +59,8 @@ class QuickPermissions extends AbstractExternalModule {
             $mobile_app = (isset($_POST['mobile_app']) == '1' ? 1 : 0);
             $mobile_app_download_data = (isset($_POST['mobile_app_download_data']) == '1' ? 1 : 0);
 
+            $expiration = ((isset($_POST['expiration']) && $_POST['expiration'] != '') ? $_POST['expiration'] : null);
+
             $sql = "SELECT COUNT(username) AS 'count' FROM redcap_user_rights WHERE project_id = ? AND username = ?";
 
             $stmt = $conn->prepare($sql);
@@ -122,7 +124,8 @@ class QuickPermissions extends AbstractExternalModule {
                api_export = ?,
                api_import = ?,
                mobile_app = ?,
-               mobile_app_download_data = ?
+               mobile_app_download_data = ?,
+               expiration = ?
                WHERE project_id = ? AND username = ?";
             }
             else if ($userExists == 0) {
@@ -150,13 +153,14 @@ class QuickPermissions extends AbstractExternalModule {
                api_import,
                mobile_app,
                mobile_app_download_data,
+               expiration,
                project_id,
                username)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             }
 
             $stmt = $conn->prepare($sql);
-            $stmt->bind_param('iiiiiiiiiiiiiiiiiiiiiiiis',
+            $stmt->bind_param('iiiiiiiiiiiiiiiiiiiiiiisis',
                 $design,
                 $user_rights,
                 $data_access_groups,
@@ -180,6 +184,7 @@ class QuickPermissions extends AbstractExternalModule {
                 $api_import,
                 $mobile_app,
                 $mobile_app_download_data,
+                $expiration,
                 $pid,
                 $username);
 
@@ -447,7 +452,10 @@ class QuickPermissions extends AbstractExternalModule {
              <input id="mobile_app_download_data" type="checkbox" name="mobile_app_download_data" > <label for="mobile_app_download_data">Download data</label><br/>
              <h4><u>API:</u></h4>
              <input id="api_export" type="checkbox" name="api_export" > <label for="api_export">API Export</label>
-             <input id="api_import" type="checkbox" name="api_import" > <label for="api_import">API Import/Update</label><br/>
+             <input id="api_import" type="checkbox" name="api_import" > <label for="api_import">API Import/Update</label>
+            <br/>
+            <br/>
+            <label for="expiration">Expiration Date:</label> <input type="date" id="expiration" name="expiration">
             <br/>
             <br/>
 

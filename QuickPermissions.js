@@ -16,6 +16,10 @@ $(document).ready(function () {
             .append( $( "<a></a>" ).html( item.label ) )
             .appendTo( ul );
     };
+
+    $('expiration').datepicker({
+        dateFormat: 'yy-mm-dd'
+    });
 });
 
 var UIOWA_QuickPermissions = {};
