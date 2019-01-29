@@ -17,6 +17,10 @@
     }
   ],
 
+  "permissions": [
+    "redcap_user_rights"
+  ],
+
   "links": {
     "control-center": [
       {

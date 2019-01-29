@@ -10,6 +10,80 @@ class QuickPermissions extends AbstractExternalModule {
 
     public static $defaultPresetsJson = "{\"none\":{\"title\":\"None\",\"data\":{\"design\":\"0\",\"user_rights\":\"0\",\"data_access_groups\":\"0\",\"data_export_tool\":\"0\",\"reports\":\"0\",\"graphical\":\"0\",\"calendar\":\"0\",\"data_import_tool\":\"0\",\"data_comparison_tool\":\"0\",\"data_logging\":\"0\",\"file_repository\":\"0\",\"data_quality_design\":\"0\",\"data_quality_execute\":\"0\",\"record_create\":\"0\",\"record_rename\":\"0\",\"record_delete\":\"0\",\"lock_record_multiform\":\"0\",\"lock_record\":\"0\",\"lock_record_customize\":\"0\",\"mobile_app\":\"0\",\"mobile_app_download_data\":\"0\",\"api_export\":\"0\",\"api_import\":\"0\",\"email\":\"0\"}},\"all\":{\"title\":\"All (No Mobile App/API)\",\"data\":{\"design\":\"1\",\"user_rights\":\"1\",\"data_access_groups\":\"1\",\"data_export_tool\":\"1\",\"reports\":\"1\",\"graphical\":\"1\",\"calendar\":\"1\",\"data_import_tool\":\"1\",\"data_comparison_tool\":\"1\",\"data_logging\":\"1\",\"file_repository\":\"1\",\"data_quality_design\":\"1\",\"data_quality_execute\":\"1\",\"record_create\":\"1\",\"record_rename\":\"1\",\"record_delete\":\"1\",\"lock_record_multiform\":\"1\",\"lock_record\":\"2\",\"lock_record_customize\":\"1\",\"mobile_app\":\"0\",\"mobile_app_download_data\":\"0\",\"api_export\":\"0\",\"api_import\":\"0\",\"email\":\"1\"}},\"redcap-default\":{\"title\":\"REDCap Default\",\"data\":{\"design\":\"0\",\"user_rights\":\"0\",\"data_access_groups\":\"0\",\"data_export_tool\":\"2\",\"reports\":\"1\",\"graphical\":\"1\",\"calendar\":\"1\",\"data_import_tool\":\"0\",\"data_comparison_tool\":\"0\",\"data_logging\":\"0\",\"file_repository\":\"1\",\"data_quality_design\":\"0\",\"data_quality_execute\":\"0\",\"record_create\":\"1\",\"record_rename\":\"0\",\"record_delete\":\"0\",\"lock_record_multiform\":\"0\",\"lock_record\":\"0\",\"lock_record_customize\":\"0\",\"mobile_app\":\"0\",\"mobile_app_download_data\":\"0\",\"api_export\":\"0\",\"api_import\":\"0\",\"email\":\"1\"}}}";
 
+    public function redcap_user_rights()
+    {
+        if (SUPER_USER == 1) {
+            $presetsJson = json_encode(self::getPresets());
+            $pid = $_REQUEST['pid'];
+            $requestUrl = $this->getUrl("requestHandler.php?type=updateUser");
+
+            print  "
+            <script type='text/javascript'>
+                $(document).ready(function(){
+                    var presets = $presetsJson;
+
+                    console.log(presets);
+
+                    $(
+                        '<select id=\'quickPermissions\'>' +
+                            '<option value=\'\'>---Select Preset---</option>' +
+                        '</select>'
+                    )
+                    .insertAfter( $('#new_username') );
+
+                    $.each(presets, function(key, value) {
+                        $('#quickPermissions').append('<option value=\'' + key + '\'>' + value['title'] + '</option>')
+                    });
+
+                    $(
+                        $('#addUserBtn')
+                            .clone()
+                            .prop({ id: 'quickAddBtn' })
+                            .html('Add with Quick Permissions')
+                            .hide()
+                    )
+                    .insertAfter( $('#addUserBtn') );
+
+                    $('#quickPermissions').change(function () {
+                        var addUserBtn = $('#addUserBtn');
+                        var quickAddBtn = $('#quickAddBtn');
+
+                        if ($(this).val() != '') {
+                            addUserBtn.hide();
+                            quickAddBtn.show();
+                        }
+                        else {
+                            addUserBtn.show();
+                            quickAddBtn.hide();
+                        }
+                    });
+
+                    $('#quickAddBtn').click(function () {
+                        var data = presets[$('#quickPermissions').val()]['data'];
+
+                        console.log(data);
+
+                        data['username'] = $('#new_username').val();
+                        data['pid'] = $pid;
+                        data['submit'] = 'UserRights';
+
+                        $.ajax({
+                            method: 'POST',
+                            url: '$requestUrl',
+                            dataType: 'json',
+                            data: data
+                        })
+                        .done(function() {
+                            console.log('done');
+                        })
+
+                    });
+                });
+            </script>
+        ";
+        }
+    }
+
     public function updateUserRights()
     {
         global $conn;
@@ -20,7 +94,7 @@ class QuickPermissions extends AbstractExternalModule {
 
         if (isset($_POST['submit'])) {
 
-            $pid = (isset($_POST['pid']) ? $_POST['pid'] : $_POST['pid']);
+            $pid = $_POST['pid'];
             $username = db_real_escape_string($_POST['username']);
 
             if(preg_match('~[^A-Za-z0-9\-._]~', $username)) {
@@ -28,36 +102,36 @@ class QuickPermissions extends AbstractExternalModule {
                 exit;
             }
 
-            $design = (isset($_POST['design']) == '1' ? 1 : 0);
-            $user_rights = (isset($_POST['user_rights']) == '1' ? 1 : 0);
-            $data_access_groups = (isset($_POST['data_access_groups']) == '1' ? 1 : 0);
+            $design = (isset($_POST['design']) == '1' ? $_POST['design'] : 0);
+            $user_rights = (isset($_POST['user_rights']) == '1' ? $_POST['user_rights'] : 0);
+            $data_access_groups = (isset($_POST['data_access_groups']) == '1' ? $_POST['data_access_groups'] : 0);
 
             $data_export_tool = (isset($_POST['data_export_tool']) == '1' ? $_POST['data_export_tool'] : 0);
-            $reports = (isset($_POST['reports']) == '1' ? 1 : 0);
-            $graphical = (isset($_POST['graphical']) == '1' ? 1 : 0);
+            $reports = (isset($_POST['reports']) == '1' ? $_POST['reports'] : 0);
+            $graphical = (isset($_POST['graphical']) == '1' ? $_POST['graphical'] : 0);
 
-            $calendar = (isset($_POST['calendar']) == '1' ? 1 : 0);
-            $data_import_tool = (isset($_POST['data_import_tool']) == '1' ? 1 : 0);
-            $data_comparison_tool = (isset($_POST['data_comparison_tool']) == '1' ? 1 : 0);
-            $data_logging = (isset($_POST['data_logging']) == '1' ? 1 : 0);
-            $file_repository = (isset($_POST['file_repository']) == '1' ? 1 : 0);
+            $calendar = (isset($_POST['calendar']) == '1' ? $_POST['calendar'] : 0);
+            $data_import_tool = (isset($_POST['data_import_tool']) == '1' ? $_POST['data_import_tool'] : 0);
+            $data_comparison_tool = (isset($_POST['data_comparison_tool']) == '1' ? $_POST['data_comparison_tool'] : 0);
+            $data_logging = (isset($_POST['data_logging']) == '1' ? $_POST['data_logging'] : 0);
+            $file_repository = (isset($_POST['file_repository']) == '1' ? $_POST['file_repository'] : 0);
 
-            $data_quality_design = (isset($_POST['data_quality_design']) == '1' ? 1 : 0);
-            $data_quality_execute = (isset($_POST['data_quality_execute']) == '1' ? 1 : 0);
+            $data_quality_design = (isset($_POST['data_quality_design']) == '1' ? $_POST['data_quality_design'] : 0);
+            $data_quality_execute = (isset($_POST['data_quality_execute']) == '1' ? $_POST['data_quality_execute'] : 0);
 
-            $record_create = (isset($_POST['record_create']) == '1' ? 1 : 0);
-            $record_rename = (isset($_POST['record_rename']) == '1' ? 1 : 0);
-            $record_delete = (isset($_POST['record_delete']) == '1' ? 1 : 0);
+            $record_create = (isset($_POST['record_create']) == '1' ? $_POST['record_create'] : 0);
+            $record_rename = (isset($_POST['record_rename']) == '1' ? $_POST['record_rename'] : 0);
+            $record_delete = (isset($_POST['record_delete']) == '1' ? $_POST['record_delete'] : 0);
 
-            $lock_record_customize = (isset($_POST['lock_record_customize']) == '1' ? 1 : 0);
+            $lock_record_customize = (isset($_POST['lock_record_customize']) == '1' ? $_POST['lock_record_customize'] : 0);
             $lock_record = (isset($_POST['lock_record']) == '1' ? $_POST['lock_record'] : 0);
-            $lock_record_multiform = (isset($_POST['lock_record_multiform']) == '1' ? 1 : 0);
+            $lock_record_multiform = (isset($_POST['lock_record_multiform']) == '1' ? $_POST['lock_record_multiform'] : 0);
 
-            $api_export = (isset($_POST['api_export']) == '1' ? 1 : 0);
-            $api_import = (isset($_POST['api_import']) == '1' ? 1 : 0);
+            $api_export = (isset($_POST['api_export']) == '1' ? $_POST['api_export'] : 0);
+            $api_import = (isset($_POST['api_import']) == '1' ? $_POST['api_import'] : 0);
 
-            $mobile_app = (isset($_POST['mobile_app']) == '1' ? 1 : 0);
-            $mobile_app_download_data = (isset($_POST['mobile_app_download_data']) == '1' ? 1 : 0);
+            $mobile_app = (isset($_POST['mobile_app']) == '1' ? $_POST['mobile_app'] : 0);
+            $mobile_app_download_data = (isset($_POST['mobile_app_download_data']) == '1' ? $_POST['mobile_app_download_data'] : 0);
 
             $expiration = ((isset($_POST['expiration']) && $_POST['expiration'] != '') ? $_POST['expiration'] : null);
 
@@ -217,6 +291,7 @@ class QuickPermissions extends AbstractExternalModule {
                     $this->returnResultMessage("Existing user rights for " . $_POST['username'] . " successfully updated.", $urlString);
                 }
 
+                return true;
             }
             elseif ($success == 0) {
                 $this->returnResultMessage("User already has identical rights! No changes were applied.", null);
@@ -295,10 +370,8 @@ class QuickPermissions extends AbstractExternalModule {
         echo json_encode($usernames);
     }
 
-    public function displayPermissionsPage()
+    public function getPresets()
     {
-        session_start();
-
         $presets = json_decode(self::$defaultPresetsJson, true);
 
         if (self::getSystemSetting('presets') && !self::getSystemSetting('user-presets')) {
@@ -323,7 +396,14 @@ class QuickPermissions extends AbstractExternalModule {
             }
         }
 
-        $presetsJson = json_encode($presets);
+        return $presets;
+    }
+
+    public function displayPermissionsPage()
+    {
+        session_start();
+
+        $presets = self::getPresets();
 
         $sql = "SELECT
           project_id,
@@ -346,7 +426,7 @@ class QuickPermissions extends AbstractExternalModule {
         <script src="<?= $this->getUrl("QuickPermissions.js") ?>"></script>
 
         <script>
-            var permissionsLookup = <?= $presetsJson ?>;
+            var permissionsLookup = <?= json_encode($presets) ?>;
             var defaultPermissionsLookup = <?= self::$defaultPresetsJson ?>;
             var presetNames = Object.keys(permissionsLookup);
             var defaultPresetNames = Object.keys(defaultPermissionsLookup);
