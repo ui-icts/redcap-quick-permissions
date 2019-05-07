@@ -13,74 +13,17 @@ class QuickPermissions extends AbstractExternalModule {
     public function redcap_user_rights()
     {
         if (SUPER_USER == 1) {
-            $presetsJson = json_encode(self::getPresets());
-            $pid = $_REQUEST['pid'];
-            $requestUrl = $this->getUrl("requestHandler.php?type=updateUser");
+            ?>
+            <script>
+                var UIOWA_QuickPermissions = {};
 
-            print  "
-            <script type='text/javascript'>
-                $(document).ready(function(){
-                    var presets = $presetsJson;
-
-                    console.log(presets);
-
-                    $(
-                        '<select id=\'quickPermissions\'>' +
-                            '<option value=\'\'>---Select Preset---</option>' +
-                        '</select>'
-                    )
-                    .insertAfter( $('#new_username') );
-
-                    $.each(presets, function(key, value) {
-                        $('#quickPermissions').append('<option value=\'' + key + '\'>' + value['title'] + '</option>')
-                    });
-
-                    $(
-                        $('#addUserBtn')
-                            .clone()
-                            .prop({ id: 'quickAddBtn' })
-                            .html('Add with Quick Permissions')
-                            .hide()
-                    )
-                    .insertAfter( $('#addUserBtn') );
-
-                    $('#quickPermissions').change(function () {
-                        var addUserBtn = $('#addUserBtn');
-                        var quickAddBtn = $('#quickAddBtn');
-
-                        if ($(this).val() != '') {
-                            addUserBtn.hide();
-                            quickAddBtn.show();
-                        }
-                        else {
-                            addUserBtn.show();
-                            quickAddBtn.hide();
-                        }
-                    });
-
-                    $('#quickAddBtn').click(function () {
-                        var data = presets[$('#quickPermissions').val()]['data'];
-
-                        console.log(data);
-
-                        data['username'] = $('#new_username').val();
-                        data['pid'] = $pid;
-                        data['submit'] = 'UserRights';
-
-                        $.ajax({
-                            method: 'POST',
-                            url: '$requestUrl',
-                            dataType: 'json',
-                            data: data
-                        })
-                        .done(function() {
-                            console.log('done');
-                        })
-
-                    });
-                });
+                UIOWA_QuickPermissions.presetsJson = <?= json_encode(self::getPresets()) ?>;
+                UIOWA_QuickPermissions.pid = <?= $_REQUEST['pid'] ?>;
+                UIOWA_QuickPermissions.requestUrl = '<?= $this->getUrl("requestHandler.php?type=updateUser") ?>';
             </script>
-        ";
+
+            <script src="<?= $this->getUrl("userRights.js") ?>"></script>
+            <?php
         }
     }
 
@@ -267,7 +210,7 @@ class QuickPermissions extends AbstractExternalModule {
             $stmt->close();
 
             $urlString =
-                sprintf("https://%s%sUserRights/index.php?pid=%d",  // User Rights page
+                sprintf(isset($_SERVER['HTTPS']) ? 'https://' : 'http://' . "%s%sUserRights/index.php?pid=%d",  // User Rights page
                     SERVER_NAME,
                     APP_PATH_WEBROOT,
                     $pid);
@@ -291,7 +234,7 @@ class QuickPermissions extends AbstractExternalModule {
                     $this->returnResultMessage("Existing user rights for " . $_POST['username'] . " successfully updated.", $urlString);
                 }
 
-                return true;
+                echo $success;
             }
             elseif ($success == 0) {
                 $this->returnResultMessage("User already has identical rights! No changes were applied.", null);
@@ -301,6 +244,36 @@ class QuickPermissions extends AbstractExternalModule {
             }
         }
 
+    }
+
+    public function updateUserRole(){
+        $user = $_POST['username'];
+        $role_name = $_POST['assign_manual_role'];
+        $project_id = $_POST['pid'];
+
+        $sql = "select role_id from redcap_user_roles where role_name = '$role_name' and project_id = $project_id";
+
+        $role_id = db_fetch_assoc(db_query($sql))['role_id'];
+
+        $sql = "insert into redcap_user_rights (project_id, username, role_id) values ($project_id, '".db_escape($user)."', ".checkNull($role_id).")
+			on duplicate key update role_id = $role_id";
+        if (db_query($sql)) {
+
+            // Logging (if user was created)
+            if (db_affected_rows() === 1) {
+                \REDCap::logEvent("Created User\n<font color=\"#000066\">(Quick Permissions)</font>",'user = \'' . $user . '\'',NULL,NULL,NULL,$project_id);
+            }
+            // Logging for user assignment
+            \REDCap::logEvent("Assign user to role\n<font color=\"#000066\">(Quick Permissions)</font>","user = '$user',\nrole = '$role_name'",NULL,NULL,NULL,$project_id);
+
+            $urlString =
+                sprintf(isset($_SERVER['HTTPS']) ? 'https://' : 'http://' . "%s%sUserRights/index.php?pid=%d",  // User Rights page
+                    SERVER_NAME,
+                    APP_PATH_WEBROOT,
+                    $project_id);
+
+            $this->returnResultMessage($user . " successfully added to role \"" . $role_name . "\"", $urlString);
+        }
     }
 
     public function getExistingUsers($projectId)
@@ -333,6 +306,36 @@ class QuickPermissions extends AbstractExternalModule {
         }
 
         echo json_encode($users);
+    }
+
+    public function getExistingRoles($projectId)
+    {
+        global $conn;
+        if (!isset($conn))
+        {
+            db_connect(false);
+        }
+
+        $sql = "SELECT
+          role_id,
+          role_name
+        FROM redcap_user_roles
+        WHERE redcap_user_roles.project_id = ?";
+
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param('i', $projectId);
+        $stmt->execute();
+
+        $result = $stmt->get_result();
+        $stmt->close();
+
+        $roles = [];
+
+        while ($row = db_fetch_assoc($result)) {
+            array_push($roles, $row);
+        }
+
+        echo json_encode($roles);
     }
 
     public function getExistingUserRights($projectId, $username)
@@ -422,6 +425,10 @@ class QuickPermissions extends AbstractExternalModule {
             array_push($recentProjects, $row);
         }
 
+        // Check if Quick Projects is installed
+        $quickProjects = db_query('select * from redcap_external_modules where directory_prefix = "quick_projects"');
+        $quickProjects = db_num_rows($quickProjects);
+
         ?>
         <script src="<?= $this->getUrl("QuickPermissions.js") ?>"></script>
 
@@ -433,12 +440,13 @@ class QuickPermissions extends AbstractExternalModule {
             var savePresetUrl = "<?= $this->getUrl("savePresets.php") ?>";
             var requestHandlerUrl = "<?= $this->getUrl("requestHandler.php") ?>";
             var existingUsers = [];
+            var existingRoles = [];
 
         </script>
 
         <h4>Quick Permissions</h4>
 
-        <form name="permissions" action="<?= $this->getUrl("requestHandler.php?type=updateUser") ?>" method="POST">
+        <form id="permissions" name="permissions" action="<?= $this->getUrl("requestHandler.php?type=updateUser") ?>" method="POST">
 
             <br/>
             <label for="pidSelect">Select Project: </label>
@@ -476,77 +484,102 @@ class QuickPermissions extends AbstractExternalModule {
             <br/>
             <br/>
 
-            <h4><u>Highest Level Privileges:</u></h4>
-            <input id="design" type="checkbox" name="design" value="1" > <label for="design">Project Design and Setup</label>
+            <?php
+                if ($quickProjects) {
+                    ?>
+                        <input id="custom_rights" name="permission_type" type="radio" checked="checked"> <label for="custom_rights">Assign custom user rights</label>
+                        <br/>-- OR --<br/>
+                        <input id="assign_role" name="permission_type" type="radio"> <label for="assign_role">Assign to role (for Quick Projects)</label>
+                        <br/>
+                        <br/>
+                    <?php
+                }
+            ?>
 
-            <input id="user_rights" type="checkbox" name="user_rights" value="1" > <label for="user_rights">User Rights</label>
+            <div id="specify_custom_rights">
+                <h4><u>Highest Level Privileges:</u></h4>
+                <input id="design" type="checkbox" name="design" value="1" > <label for="design">Project Design and Setup</label>
 
-            <input id="data_access_groups" type="checkbox" name="data_access_groups" value="1" > <label for="data_access_groups">Data Access Groups</label>
+                <input id="user_rights" type="checkbox" name="user_rights" value="1" > <label for="user_rights">User Rights</label>
+
+                <input id="data_access_groups" type="checkbox" name="data_access_groups" value="1" > <label for="data_access_groups">Data Access Groups</label>
+                <br/>
+
+                <h4><u>Data Exports:</u></h4>
+                <input id="no_access" type="radio" name="data_export_tool" checked="checked" value="0" > <label for="no_access">No access</label>
+                <input id="de-identified" type="radio" name="data_export_tool" value="2" > <label for="de-identified">De-identified</label>
+                <input id="remove_tagged_id_fields" type="radio" name="data_export_tool" value="3" > <label for="remove_tagged_id_fields">Remove all
+                    tagged identifier fields</label>
+                <input id="full_data_set" type="radio" name="data_export_tool" value="1" > <label for="full_data_set">Full data set</label>
+                <br/>
+
+                <input id="reports" type="checkbox" name="reports" value="1" > <label for="reports">Add/Edit Reports</label><br/>
+                <input id="graphical" type="checkbox" name="graphical" value="1" > <label for="graphical">Stats and charts</label><br/>
+
+                <h4><u>Other Privileges:</u></h4>
+                <input id="calendar" type="checkbox" name="calendar" value="1" > <label for="calendar">Calendar</label>
+                <input id="data_import_tool" type="checkbox" name="data_import_tool" value="1" > <label for="data_import_tool">Data import
+                    tool</label>
+                <input id="data_comparison_tool" type="checkbox" name="data_comparison_tool" value="1" > <label for="data_comparison_tool">Data
+                    comparison tool</label>
+                <input id="data_logging" type="checkbox" name="data_logging" value="1" > <label for="data_logging">Logging</label>
+                <input id="file_repository" type="checkbox" name="file_repository" value="1" > <label for="file_repository">File
+                    Repository</label><br/>
+
+                <h4><u>Data Quality:</u></h4>
+                <input id="data_quality_design" type="checkbox" name="data_quality_design" value="1" > <label for="data_quality_design">Data
+                    Quality Create</label>
+                <input id="data_quality_execute" type="checkbox" name="data_quality_execute" value="1" > <label for="data_quality_execute">Data
+                    Quality Execute</label><br/>
+
+                <h4><u>Project record settings</u></h4>
+                <input id="record_create" type="checkbox" name="record_create" value="1" > <label for="record_create">Create records</label>
+                <input id="record_rename" type="checkbox" name="record_rename" value="1" > <label for="record_rename">Rename records</label>
+                <input id="record_delete" type="checkbox" name="record_delete" value="1" > <label for="record_delete">Delete records</label>
+                <br/>
+
+                <h4><u>Record locking and E-signatures:</u></h4>
+                <input id="lock_record_customize" type="checkbox" name="lock_record_customize" value="1" > <label for="lock_record_customize">Record
+                    locking customization</label> <br/>
+                <input id="disabled" type="radio" name="lock_record"  checked="checked" value="0" > <label for="disabled">Disabled</label>
+                <input id="lock_record" type="radio" name="lock_record" value="1" > <label for="lock_record">Locking/Unlocking</label>
+                <input id="lock_record_esig" type="radio" name="lock_record" value="2" > <label for="lock_record_esig">Locking/Unlocking with
+                    E-signature authority</label><br/>
+                <input id="lock_record_multiform" type="checkbox" name="lock_record_multiform" value="1" > <label for="lock_record_multiform">Allow
+                    locking of all forms at once for a given record</label><br/>
+                <br/>
+                <h4><u>Mobile App:</u></h4>
+                <input id="mobile_app" type="checkbox" name="mobile_app" > <label for="mobile_app">Data collection in mobile app</label>
+                <input id="mobile_app_download_data" type="checkbox" name="mobile_app_download_data" > <label for="mobile_app_download_data">Download data</label><br/>
+                <h4><u>API:</u></h4>
+                <input id="api_export" type="checkbox" name="api_export" > <label for="api_export">API Export</label>
+                <input id="api_import" type="checkbox" name="api_import" > <label for="api_import">API Import/Update</label>
+                <br/>
+                <br/>
+                <label for="expiration">Expiration Date:</label> <input type="date" id="expiration" name="expiration">
+
+            </div>
+            <div id="specify_role" style="display: none">
+                <p>
+                    Enter an exact role name below and save as a preset. This feature is only for use with the Quick Projects module.
+                </p>
+                <br/>
+                <div id="custom_role_name">
+                    <label for="assign_manual_role">Define role name: </label> <input id="assign_manual_role" name="assign_manual_role">
+                </div>
+            </div>
+            <br/>
             <br/>
 
-            <h4><u>Data Exports:</u></h4>
-            <input id="no_access" type="radio" name="data_export_tool" checked="checked" value="0" > <label for="no_access">No access</label>
-            <input id="de-identified" type="radio" name="data_export_tool" value="2" > <label for="de-identified">De-identified</label>
-            <input id="remove_tagged_id_fields" type="radio" name="data_export_tool" value="3" > <label for="remove_tagged_id_fields">Remove all
-            tagged identifier fields</label>
-            <input id="full_data_set" type="radio" name="data_export_tool" value="1" > <label for="full_data_set">Full data set</label>
-            <br/>
 
-            <input id="reports" type="checkbox" name="reports" value="1" > <label for="reports">Add/Edit Reports</label><br/>
-            <input id="graphical" type="checkbox" name="graphical" value="1" > <label for="graphical">Stats and charts</label><br/>
-
-            <h4><u>Other Privileges:</u></h4>
-            <input id="calendar" type="checkbox" name="calendar" value="1" > <label for="calendar">Calendar</label>
-            <input id="data_import_tool" type="checkbox" name="data_import_tool" value="1" > <label for="data_import_tool">Data import
-            tool</label>
-            <input id="data_comparison_tool" type="checkbox" name="data_comparison_tool" value="1" > <label for="data_comparison_tool">Data
-            comparison tool</label>
-            <input id="data_logging" type="checkbox" name="data_logging" value="1" > <label for="data_logging">Logging</label>
-            <input id="file_repository" type="checkbox" name="file_repository" value="1" > <label for="file_repository">File
-            Repository</label><br/>
-
-            <h4><u>Data Quality:</u></h4>
-            <input id="data_quality_design" type="checkbox" name="data_quality_design" value="1" > <label for="data_quality_design">Data
-            Quality Create</label>
-            <input id="data_quality_execute" type="checkbox" name="data_quality_execute" value="1" > <label for="data_quality_execute">Data
-            Quality Execute</label><br/>
-
-            <h4><u>Project record settings</u></h4>
-            <input id="record_create" type="checkbox" name="record_create" value="1" > <label for="record_create">Create records</label>
-            <input id="record_rename" type="checkbox" name="record_rename" value="1" > <label for="record_rename">Rename records</label>
-            <input id="record_delete" type="checkbox" name="record_delete" value="1" > <label for="record_delete">Delete records</label>
-            <br/>
-
-            <h4><u>Record locking and E-signatures:</u></h4>
-            <input id="lock_record_customize" type="checkbox" name="lock_record_customize" value="1" > <label for="lock_record_customize">Record
-            locking customization</label> <br/>
-            <input id="disabled" type="radio" name="lock_record"  checked="checked" value="0" > <label for="disabled">Disabled</label>
-            <input id="lock_record" type="radio" name="lock_record" value="1" > <label for="lock_record">Locking/Unlocking</label>
-            <input id="lock_record_esig" type="radio" name="lock_record" value="2" > <label for="lock_record_esig">Locking/Unlocking with
-            E-signature authority</label><br/>
-            <input id="lock_record_multiform" type="checkbox" name="lock_record_multiform" value="1" > <label for="lock_record_multiform">Allow
-            locking of all forms at once for a given record</label><br/>
-            <br/>
-             <h4><u>Mobile App:</u></h4>
-             <input id="mobile_app" type="checkbox" name="mobile_app" > <label for="mobile_app">Data collection in mobile app</label>
-             <input id="mobile_app_download_data" type="checkbox" name="mobile_app_download_data" > <label for="mobile_app_download_data">Download data</label><br/>
-             <h4><u>API:</u></h4>
-             <input id="api_export" type="checkbox" name="api_export" > <label for="api_export">API Export</label>
-             <input id="api_import" type="checkbox" name="api_import" > <label for="api_import">API Import/Update</label>
-            <br/>
-            <br/>
-            <label for="expiration">Expiration Date:</label> <input type="date" id="expiration" name="expiration">
-            <br/>
-            <br/>
-
-            <div style="border-style: solid; display: inline; padding: 5px">
+            <div style="border-style: solid; display: inline; padding: 5px" id="email-section">
                 <input id="email" type="checkbox" name="email" value="1" > <label for="email">Notify newly added user of their project access via email?</label>
             </div>
             <br/>
             <br/>
 
             <input type="hidden" id="redirect" name="redirect" value=" ">
-            <button id="submit" type="submit" name="submit" value="submit">Add/Update User</button>
+            <button id="submit" type="submit" name="submit" value="submit" disabled="disabled">Add/Update User</button>
         </form>
 
         <script>
@@ -555,6 +588,7 @@ class QuickPermissions extends AbstractExternalModule {
             UIOWA_QuickPermissions.setSavePresetButtonState(document.getElementById('newPresetTitle'));
             UIOWA_QuickPermissions.updatePid(document.getElementById('pidSelect').value);
             UIOWA_QuickPermissions.getExistingUsers(document.getElementById('pid').value);
+            UIOWA_QuickPermissions.getExistingRoles(document.getElementById('pid').value);
 
             <?php
             if(isset($_SESSION['result'])){ //check if form was submitted

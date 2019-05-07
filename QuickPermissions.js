@@ -20,6 +20,52 @@ $(document).ready(function () {
     $('expiration').datepicker({
         dateFormat: 'yy-mm-dd'
     });
+
+    $('#assign_role').on('click', function() {
+        $('#specify_custom_rights').hide();
+        $('#specify_role').show();
+        $('#email-section').hide();
+        $('#submit').hide();
+    });
+
+    $('#custom_rights').on('click', function() {
+        $('#specify_custom_rights').show();
+        $('#specify_role').hide();
+        $('#assign_manual_role').val('');
+        $('#role_select').val('');
+        $('#email-section').show();
+        $('#submit').show();
+    });
+
+    $('#role_select').change(function () {
+        if (this.value == 'manual') {
+            $('#assign_manual_role').val('');
+            $('#submit').prop('disabled', 'disabled')
+        }
+        else {
+            $('#assign_manual_role').val($('#role_select option:selected').text());
+        }
+    });
+
+    $('#username').on('keyup', function () {
+        if ($(this).val() != '' && $('#role_select').val() != 'manual') {
+            $('#submit').prop('disabled', '')
+        }
+        else {
+            $('#submit').prop('disabled', 'disabled')
+        }
+
+        UIOWA_QuickPermissions.newUserCheck(this);
+    });
+
+    $('#existingUser').change(function () {
+        if ($('#username').val() != '' && $('#role_select').val() != 'manual' && $('#role_select').val() != '') {
+            $('#submit').prop('disabled', '')
+        }
+        else {
+            $('#submit').prop('disabled', 'disabled')
+        }
+    });
 });
 
 var UIOWA_QuickPermissions = {};
@@ -41,6 +87,10 @@ UIOWA_QuickPermissions.savePreset = function() {
                 if (el.type == 'radio') {
                     radioName = el.name;
                 }
+            }
+
+            if (el.name == 'assign_manual_role') {
+                rights[el.name] = el.value;
             }
         }
     }
@@ -128,6 +178,14 @@ UIOWA_QuickPermissions.loadPermissions = function(data) {
             }
         }
     }
+
+    if (array_search('assign_manual_role', keys) != false) {
+        $('#assign_role').trigger('click');
+        $('#assign_manual_role').val(data['assign_manual_role'])
+    }
+    else {
+        $('#custom_rights').trigger('click');
+    }
 };
 
 UIOWA_QuickPermissions.savePresets = function(presetsData) {
@@ -173,6 +231,45 @@ UIOWA_QuickPermissions.getExistingUsers = function(pid) {
                 usersDropdown.appendChild(newOption);
                 existingUsers.push(users[j]['username']);
             }
+        }
+    }
+};
+
+UIOWA_QuickPermissions.getExistingRoles = function(pid) {
+    var request = new XMLHttpRequest();
+    request.open("POST", requestHandlerUrl, true);
+    request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    request.send('type=getProjectRoles&pid=' + pid);
+
+    request.onreadystatechange = function() {
+        if (request.readyState === 4) {
+            var rolesDropdown = document.getElementById('role_select');
+            var roles = JSON.parse(request.response);
+
+            for (var i = rolesDropdown.options.length - 1 ; i >= 0 ; i--)
+            {
+                rolesDropdown.remove(i);
+            }
+
+            var initialOption = document.createElement("option");
+            initialOption.text = '---Select---';
+            initialOption.value = '';
+            rolesDropdown.appendChild(initialOption);
+
+            for (var j in roles) {
+                var newOption = document.createElement("option");
+
+                newOption.text = roles[j]['role_name'];
+                newOption.value = roles[j]['role_id'];
+                rolesDropdown.appendChild(newOption);
+                existingRoles.push(roles[j]['role_name']);
+            }
+
+            var otherOption = document.createElement("option");
+
+            otherOption.text = 'Define manually...';
+            otherOption.value = 'manual';
+            rolesDropdown.appendChild(otherOption);
         }
     }
 };

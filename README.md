@@ -1,7 +1,7 @@
 ## Quick Permissions
 
 ### Description
-The Quick Permissions module allows for the quick assignment of User Rights to a REDCap project. Common configurations can be saved as presets for even faster assignment.
+The Quick Permissions module allows for the quick assignment of User Rights to a REDCap project. Common configurations can be saved as presets for even quicker assignment.
 
 ### Basic Usage
 After downloading and enabling this module on your REDCap instance, a link to Quick Permissions will appear at the bottom of the Control Center sidebar.
@@ -20,3 +20,9 @@ There are 3 built-in presets that can be used for quick rights assignment:
 * **REDCap Default:** Mirrors default options selected when using the "Add with custom rights" button on REDCap's built-in User Rights page
 
 Custom presets can be saved by entering a name and clicking the "Save Custom Preset" button. This preset name will be added to the saved list and automatically selected. A "Delete" button will appear if a custom preset is selected (built-in presets can not be deleted).
+
+### Quick Add from User Rights page
+If Quick Permissions is enabled on a project, a dropdown menu for preset selection will appear on the User Rights page. If one of these presets are selected, the "Add with custom rights" button will change to "Add with Quick Permissions". Adding a user with this method will take effect immediately and reload the page to reflect the change. This feature is only visible to superusers.
+
+### Quick Projects Integration
+If the Quick Projects module is also installed, any presets configured in Quick Permissions will be available for use in Quick Projects as well. Additionally, presets can be defined to point to a role name (assumed to exist in the project being created via Quick Projects).
