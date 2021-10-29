@@ -18,7 +18,7 @@ class QuickPermissions extends AbstractExternalModule {
                 var UIOWA_QuickPermissions = {};
 
                 UIOWA_QuickPermissions.presetsJson = <?= json_encode(self::getPresets()) ?>;
-                UIOWA_QuickPermissions.pid = <?= $_REQUEST['pid'] ?>;
+                UIOWA_QuickPermissions.pid = <?= htmlentities($_REQUEST['pid'], ENT_QUOTES) ?>;
                 UIOWA_QuickPermissions.requestUrl = '<?= $this->getUrl("requestHandler.php?type=updateUser") ?>';
             </script>
 
@@ -616,7 +616,7 @@ class QuickPermissions extends AbstractExternalModule {
             $redirect = $_POST['redirect'];
             unset($_POST['redirect']);
 
-            header("Location: $redirect");
+            header("Location: " . $redirect);
         }
     }
 
